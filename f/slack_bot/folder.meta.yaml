@@ -1,0 +1,9 @@
+summary: null
+display_name: Slack bot
+extra_perms:
+  g/error_handler: false
+  g/slack: true
+  u/alex: true
+owners:
+  - g/slack
+  - u/alex
