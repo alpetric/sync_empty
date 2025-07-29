@@ -1,0 +1,6 @@
+description: >-
+  The slack bot token to act on behalf of the installed app of the connected
+  workspace
+value:
+  token: '$var:f/slack_bot/bot_token'
+resource_type: slack
