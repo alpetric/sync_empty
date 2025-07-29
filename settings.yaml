@@ -79,6 +79,28 @@ git_sync:
           - resource
           - resourcetype
       use_individual_branch: true
+    - exclude_types_override: []
+      git_repo_resource_path: '$res:u/alex/sync_emmpty'
+      group_by_folder: true
+      script_path: hub/19785/sync-script-to-git-repo-windmill
+      settings:
+        exclude_path: []
+        extra_include_path: []
+        include_path:
+          - f/**
+        include_type:
+          - script
+          - flow
+          - app
+          - folder
+          - settings
+          - group
+          - schedule
+          - resourcetype
+          - resource
+          - user
+          - trigger
+      use_individual_branch: true
 large_file_storage:
   type: S3Storage
   public_resource: false
