@@ -39,7 +39,7 @@ git_sync:
           - user
           - settings
           - key
-      use_individual_branch: true
+      use_individual_branch: false
     - exclude_types_override: []
       git_repo_resource_path: '$res:u/alex/elated_git_repository'
       group_by_folder: false
