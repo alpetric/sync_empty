@@ -9,9 +9,6 @@ ai_config:
         - claude-sonnet-4-0
         - claude-3-7-sonnet-20250219
       resource_path: u/alex/anthropic
-    customai:
-      models: []
-      resource_path: u/alex/assuring_customai
 auto_invite_as: developer
 auto_invite_enabled: false
 auto_invite_mode: invite
