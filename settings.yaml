@@ -91,6 +91,7 @@ large_file_storage:
   secondary_storage: {}
 mute_critical_alerts: false
 operator_settings:
+  assets: true
   audit_logs: true
   folders: true
   groups: true
