@@ -1,0 +1,7 @@
+summary: null
+display_name: App Groups
+extra_perms:
+  g/all: false
+  u/alex: true
+owners:
+  - u/alex
