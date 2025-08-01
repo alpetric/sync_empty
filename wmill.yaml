@@ -1,0 +1,21 @@
+defaultTs: bun
+includes:
+  - f/**
+excludes: []
+codebases: []
+skipVariables: true
+skipResources: true
+skipSecrets: true
+skipScripts: false
+skipFlows: false
+skipApps: false
+skipFolders: false
+includeSchedules: false
+includeTriggers: false
+overrides: {}
+extraIncludes: []
+skipResourceTypes: true
+includeUsers: false
+includeGroups: false
+includeSettings: false
+includeKey: false
