@@ -1,4 +1,4 @@
-// https://www.windmill.dev/docs/getting_started/scripts_quickstart/typescript#modesadfadsf
+// https://www.windmill.dev/docs/getting_started/scripts_quickstart/typescript#modesadfadsfadfadf
 
 // import { toWords } from "number-to-words@1"
 import * as wmill from "windmill-client"
