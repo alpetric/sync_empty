@@ -1,0 +1,6 @@
+summary: ''
+display_name: schedule
+extra_perms:
+  u/alex: true
+owners:
+  - u/alex
