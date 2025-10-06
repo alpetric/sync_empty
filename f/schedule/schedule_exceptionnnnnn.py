@@ -11,5 +11,5 @@ def main(scheduled_for: str) -> bool:
     dt = datetime.fromisoformat(scheduled_for.replace('Z', '+00:00'))
     
     # Return True if minute is even, False if minute is odd
-    # return dt.minute % 2 == 0
-    return 1/0 == 0
+    return dt.minute % 2 == 0
+    # return 1/0 == 0
