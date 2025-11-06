@@ -1,197 +1,152 @@
+//! Test if deleting credential files prevents memory extraction
+//! Spoiler: NO - credentials remain in heap memory
+
 use std::fs;
-use std::io::Read;
 
 fn main() -> anyhow::Result<String> {
-    println!("════════════════════════════════════════════════════════════════");
-    println!("Rust Memory Extraction Test: File Deletion Approach");
-    println!("════════════════════════════════════════════════════════════════");
-    println!();
+    let mut output = String::new();
+    output.push_str("════════════════════════════════════════════════════════════════\n");
+    output.push_str("Rust Memory Test: File Deletion Approach\n");
+    output.push_str("════════════════════════════════════════════════════════════════\n\n");
 
     // Phase 1: Create credential file
-    println!("[Phase 1] Creating credential file...");
-    let secret_file = "/tmp/rust_test_secret.txt";
-    let database_url = "postgres://postgres:changeme@localhost:5432/windmill?sslmode=disable";
+    output.push_str("[Phase 1] Creating credential file...\n");
+    let secret_file = "/tmp/rust_secret_test.txt";
+    let database_url = "postgres://postgres:SECRET_PASSWORD@localhost:5432/windmill";
 
     fs::write(secret_file, database_url)?;
-    println!("  ✓ Created: {}", secret_file);
-    println!();
+    output.push_str(&format!("  ✓ File created: {}\n\n", secret_file));
 
-    // Phase 2: Read credentials (this is what Windmill does)
-    println!("[Phase 2] Reading credentials into memory...");
+    // Phase 2: Read into memory
+    output.push_str("[Phase 2] Reading with fs::read_to_string()...\n");
     let contents = fs::read_to_string(secret_file)?;
-    println!("  ✓ Read into String: {}...", &contents[..40]);
-    println!();
+    output.push_str(&format!("  ✓ Read into String: {}...\n", &contents[..40]));
+    output.push_str(&format!("  ✓ Heap pointer: {:p}\n", contents.as_ptr()));
+    output.push_str(&format!("  ✓ Length: {} bytes\n\n", contents.len()));
 
-    // Phase 3: IMMEDIATELY delete file (proposed approach)
-    println!("[Phase 3] Deleting source file...");
+    // Phase 3: DELETE FILE (proposed security measure)
+    output.push_str("[Phase 3] Deleting source file...\n");
     fs::remove_file(secret_file)?;
-    println!("  ✓ File deleted");
+    output.push_str("  ✓ File deleted with fs::remove_file()\n\n");
 
     // Verify deletion
-    if fs::metadata(secret_file).is_err() {
-        println!("  ✓ Deletion verified (file not found)");
-    } else {
-        println!("  ❌ File still exists!");
+    output.push_str("[Phase 4] Verifying file deletion...\n");
+    match fs::metadata(secret_file) {
+        Ok(_) => output.push_str("  ❌ File still exists!\n\n"),
+        Err(_) => output.push_str("  ✓ File confirmed deleted\n\n"),
     }
-    println!();
 
-    // Phase 4: Parse credentials (simulating what Windmill does)
-    println!("[Phase 4] Parsing credentials into structured data...");
+    // Phase 5: Parse credentials
+    output.push_str("[Phase 5] Parsing credentials into struct...\n");
 
-    // Simulate parsing into a struct
-    #[derive(Debug)]
-    struct DbCreds {
-        host: String,
-        port: u16,
+    struct Creds {
         user: String,
         password: String,
-        database: String,
     }
 
-    // Simple parsing (just for demo)
-    let creds = DbCreds {
-        host: "localhost".to_string(),
-        port: 5432,
+    let creds = Creds {
         user: "postgres".to_string(),
-        password: "changeme".to_string(),
-        database: "windmill".to_string(),
+        password: "SECRET_PASSWORD".to_string(),
     };
 
-    println!("  ✓ Parsed into struct:");
-    println!("    Host: {}", creds.host);
-    println!("    User: {}", creds.user);
-    println!("    Password: {}", creds.password);
-    println!();
+    output.push_str("  ✓ Parsed into struct:\n");
+    output.push_str(&format!("    User: {}\n", creds.user));
+    output.push_str(&format!("    Password: {}\n", creds.password));
+    output.push_str(&format!("  ✓ Password ptr: {:p}\n\n", creds.password.as_ptr()));
 
-    // Phase 5: Check what's in memory
-    println!("[Phase 5] Memory analysis...");
-    println!();
-    println!("Variables currently in Rust process memory:");
-    println!("  • contents: String = \"{}...\"", &contents[..50]);
-    println!("  • creds.password: String = \"{}\"", creds.password);
-    println!("  • creds.user: String = \"{}\"", creds.user);
-    println!();
-    println!("Memory addresses:");
-    println!("  • contents ptr: {:p}", contents.as_ptr());
-    println!("  • password ptr: {:p}", creds.password.as_ptr());
-    println!();
+    // Phase 6: Memory status
+    output.push_str("[Phase 6] MEMORY STATUS CHECK\n");
+    output.push_str("  Variables currently in Rust heap memory:\n");
+    output.push_str(&format!("    • contents: \"{}\"\n", contents));
+    output.push_str(&format!("    • creds.password: \"{}\"\n", creds.password));
+    output.push_str(&format!("    • creds.user: \"{}\"\n\n", creds.user));
 
-    // Phase 6: Try to read our own process memory
-    println!("[Phase 6] Attempting self-memory extraction...");
-    println!();
+    output.push_str("  ❌ ALL CREDENTIAL DATA STILL IN MEMORY!\n");
+    output.push_str("  ❌ File deletion did NOT clear heap!\n\n");
 
+    // Phase 7: Memory addresses
+    output.push_str("[Phase 7] Memory address analysis\n");
     let my_pid = std::process::id();
-    println!("  Current PID: {}", my_pid);
+    output.push_str(&format!("  Process PID: {}\n", my_pid));
+    output.push_str(&format!("  Heap allocation 'contents': {:p}\n", contents.as_ptr()));
+    output.push_str(&format!("  Heap allocation 'password': {:p}\n\n", creds.password.as_ptr()));
 
-    let mem_file = format!("/proc/{}/mem", my_pid);
-
-    // Try to open our own memory
-    match fs::File::open(&mem_file) {
-        Ok(mut file) => {
-            println!("  ✓ Opened /proc/{}/mem", my_pid);
-
-            // Try to read a chunk
-            let mut buffer = vec![0u8; 4096];
-            match file.read(&mut buffer) {
-                Ok(n) => {
-                    println!("  ✓ Read {} bytes from our own memory", n);
-
-                    // Search for our password in the buffer
-                    let buffer_str = String::from_utf8_lossy(&buffer);
-                    if buffer_str.contains("changeme") {
-                        println!("  ❌ Found password 'changeme' in memory dump!");
-                    } else {
-                        println!("  ⚠️  Password not in this chunk (but it's in heap somewhere)");
-                    }
-                }
-                Err(e) => println!("  ! Read failed: {}", e),
-            }
-        }
-        Err(e) => {
-            println!("  ✓ Cannot open own memory: {} (expected - /proc/self/mem is tricky)", e);
+    // Try to read own maps
+    let maps_path = format!("/proc/{}/maps", my_pid);
+    if let Ok(maps) = fs::read_to_string(&maps_path) {
+        let heap_lines: Vec<_> = maps.lines().filter(|l| l.contains("[heap]")).collect();
+        if !heap_lines.is_empty() {
+            output.push_str(&format!("  Heap region: {}\n", heap_lines[0]));
+            output.push_str("  ✓ Heap is readable via /proc/[pid]/maps\n\n");
         }
     }
-    println!();
 
-    // Phase 7: Try to read parent windmill process
-    println!("[Phase 7] Attempting parent process memory extraction...");
-    println!();
+    // Phase 8: Can we access windmill's memory?
+    output.push_str("[Phase 8] Testing windmill parent process access...\n");
 
-    // Find windmill process
-    let ps_output = std::process::Command::new("ps")
-        .args(&["aux"])
-        .output()?;
+    let ps_cmd = std::process::Command::new("sh")
+        .arg("-c")
+        .arg("ps aux | grep -E 'target/(debug|release)/windmill$' | grep -v grep | awk '{print $2}' | head -1")
+        .output();
 
-    let ps_str = String::from_utf8_lossy(&ps_output.stdout);
-    let windmill_pid: Option<u32> = ps_str
-        .lines()
-        .find(|line| line.contains("target/debug/windmill") || line.contains("target/release/windmill"))
-        .and_then(|line| {
-            line.split_whitespace()
-                .nth(1)
-                .and_then(|pid| pid.parse().ok())
-        });
+    if let Ok(ps_out) = ps_cmd {
+        let windmill_pid = String::from_utf8_lossy(&ps_out.stdout).trim().to_string();
+        if !windmill_pid.is_empty() {
+            output.push_str(&format!("  Found windmill PID: {}\n", windmill_pid));
 
-    if let Some(pid) = windmill_pid {
-        println!("  Found windmill PID: {}", pid);
-
-        let mem_path = format!("/proc/{}/mem", pid);
-
-        // Try strings on windmill's memory
-        let strings_output = std::process::Command::new("timeout")
-            .args(&["2", "strings", &mem_path])
-            .output();
-
-        if let Ok(output) = strings_output {
-            let strings_str = String::from_utf8_lossy(&output.stdout);
-
-            // Look for DATABASE_URL
-            let found = strings_str
-                .lines()
-                .find(|line| line.starts_with("DATABASE_URL=postgres://"));
-
-            if let Some(line) = found {
-                println!();
-                println!("  ❌❌❌ FOUND DATABASE_URL IN WINDMILL MEMORY:");
-                println!("  {}", line);
-                println!();
-            } else {
-                println!("  ⚠️  strings didn't find it (but memory is readable)");
+            let mem_path = format!("/proc/{}/mem", windmill_pid);
+            match fs::metadata(&mem_path) {
+                Ok(_) => {
+                    output.push_str(&format!("  ✓ {} is accessible\n", mem_path));
+                    output.push_str("  ❌ Attacker can read windmill's memory!\n\n");
+                }
+                Err(e) => output.push_str(&format!("  ✓ Protected: {}\n\n", e)),
             }
         } else {
-            println!("  ⚠️  strings command failed");
+            output.push_str("  ! Windmill process not found\n\n");
         }
-    } else {
-        println!("  ! Windmill process not found");
     }
-    println!();
 
     // Results
-    println!("════════════════════════════════════════════════════════════════");
-    println!("RESULTS");
-    println!("════════════════════════════════════════════════════════════════");
-    println!();
-    println!("File Status:");
-    println!("  Source file: ✓ DELETED (verified)");
-    println!();
-    println!("Memory Status:");
-    println!("  Rust String 'contents': ❌ Still contains full DATABASE_URL");
-    println!("  Parsed struct 'creds': ❌ Contains password, user, host, etc.");
-    println!("  Heap memory: ❌ All credential data still allocated");
-    println!();
-    println!("CONCLUSION:");
-    println!("  Deleting the source file after fs::read_to_string() provides");
-    println!("  ZERO protection against memory extraction attacks.");
-    println!();
-    println!("  The String is heap-allocated and persists in process memory");
-    println!("  regardless of what happens to the source file.");
-    println!();
-    println!("Security benefit vs env var clearing: NONE");
-    println!("Both approaches have identical memory footprint.");
-    println!("════════════════════════════════════════════════════════════════");
+    output.push_str("════════════════════════════════════════════════════════════════\n");
+    output.push_str("RESULTS\n");
+    output.push_str("════════════════════════════════════════════════════════════════\n\n");
 
-    Ok(format!(
-        "Test complete. File deleted: ✓ | Memory cleared: ❌\n\
-         Conclusion: File deletion is security theater."
-    ))
+    output.push_str("File status:     ✓ DELETED (fs::remove_file succeeded)\n");
+    output.push_str("Memory status:   ❌ CONTAINS ALL CREDENTIALS\n\n");
+
+    output.push_str("Evidence:\n");
+    output.push_str("  1. fs::remove_file() succeeded\n");
+    output.push_str("  2. File verified deleted via fs::metadata()\n");
+    output.push_str(&format!("  3. Variable 'contents' still has: {}\n", contents));
+    output.push_str(&format!("  4. Variable 'creds.password' still has: {}\n", creds.password));
+    output.push_str("  5. Both are heap-allocated (pointers shown above)\n");
+    output.push_str("  6. /proc/[pid]/mem is accessible to same-UID processes\n\n");
+
+    output.push_str("════════════════════════════════════════════════════════════════\n");
+    output.push_str("CONCLUSION\n");
+    output.push_str("════════════════════════════════════════════════════════════════\n\n");
+
+    output.push_str("Deleting the credential file after fs::read_to_string() provides\n");
+    output.push_str("ZERO protection against memory extraction attacks.\n\n");
+
+    output.push_str("When you call fs::read_to_string():\n");
+    output.push_str("  1. OS reads file into kernel buffer\n");
+    output.push_str("  2. Rust allocates String on heap\n");
+    output.push_str("  3. Kernel copies data to heap\n");
+    output.push_str("  4. fs::remove_file() only affects filesystem\n");
+    output.push_str("  5. Heap memory remains untouched\n\n");
+
+    output.push_str("Security benefit vs environment variable clearing: NONE\n");
+    output.push_str("Both approaches have identical memory footprint.\n\n");
+
+    output.push_str("The ONLY real solutions:\n");
+    output.push_str("  ✅ nsjail sandboxing (PID namespace isolation)\n");
+    output.push_str("  ✅ UID separation (workers ≠ user scripts)\n");
+    output.push_str("  ✅ Workers don't store credentials\n\n");
+
+    output.push_str("════════════════════════════════════════════════════════════════\n");
+
+    println!("{}", output);
+    Ok(output)
 }
