@@ -4,8 +4,8 @@
 echo "=== Attempting to read DATABASE_URL from process memory ==="
 echo ""
 
-# Find windmill worker process
-windmill_pid=$(pgrep -f "windmill" | head -1)
+# Find windmill worker process - look for the actual binary, not shell wrappers
+windmill_pid=$(ps aux | grep -E "(windmill|target/debug/windmill|target/release/windmill)" | grep -v grep | grep -v "node_modules" | grep -v "vite" | awk '{print $2}' | head -1)
 
 if [ -z "$windmill_pid" ]; then
     echo "❌ No windmill process found"
@@ -13,6 +13,7 @@ if [ -z "$windmill_pid" ]; then
 fi
 
 echo "Found windmill process: PID $windmill_pid"
+ps -p $windmill_pid -o pid,cmd | tail -1
 echo ""
 
 # Method 1: Try to use gdb (if available)
