@@ -3,7 +3,7 @@
 
 use std::fs;
 
-fn main() -> anyhow::Result<String> {
+fn main() -> Result<String, Box<dyn std::error::Error>> {
     let mut output = String::new();
     output.push_str("════════════════════════════════════════════════════════════════\n");
     output.push_str("Rust Memory Test: File Deletion Approach\n");
