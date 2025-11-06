@@ -1,0 +1,11 @@
+summary: Test DATABASE_URL exposure in /proc/*/environ
+description: >-
+  Security test to verify DATABASE_URL credentials are not accessible via /proc
+  filesystem after fix
+lock: ''
+kind: script
+schema:
+  $schema: 'https://json-schema.org/draft/2020-12/schema'
+  type: object
+  properties: {}
+  required: []
