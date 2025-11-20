@@ -1,0 +1,172 @@
+summary: ''
+value:
+  fullscreen: false
+  grid:
+    - '12':
+        fixed: true
+        fullHeight: false
+        h: 2
+        w: 12
+        x: 0
+        'y': 0
+      '3':
+        fixed: true
+        fullHeight: false
+        h: 2
+        w: 6
+        x: 0
+        'y': 0
+      id: topbar
+      data:
+        id: topbar
+        type: containercomponent
+        configuration: {}
+        customCss:
+          container:
+            class: '!p-0'
+            style: ''
+        numberOfSubgrids: 1
+  hiddenInlineScripts:
+    - type: runnableByName
+      name: Background Runnable 0
+      autoRefresh: true
+      fields:
+        x:
+          type: static
+          value: null
+          fieldType: string
+      inlineScript:
+        content: '!inline background_runnable_0.inline_script.ts'
+        lock: '!inline background_runnable_0.inline_script.lock'
+        language: bun
+        path: u/alex/newapp/Background_Runnable_0
+        schema:
+          $schema: 'https://json-schema.org/draft/2020-12/schema'
+          type: object
+          properties:
+            x:
+              type: string
+              description: ''
+              default: null
+              originalType: string
+          required:
+            - x
+      recomputeIds: []
+      recomputeOnInputChanged: true
+    - type: runnableByName
+      name: Background Runnable 1
+      autoRefresh: true
+      fields: {}
+    - type: runnableByName
+      name: Background Runnable 2
+      autoRefresh: true
+      fields: {}
+  hideLegacyTopBar: true
+  mobileViewOnSmallerScreens: false
+  norefreshbar: false
+  subgrids:
+    topbar-0:
+      - '12':
+          fixed: false
+          fullHeight: false
+          h: 1
+          w: 6
+          x: 0
+          'y': 0
+        '3':
+          fixed: false
+          fullHeight: false
+          h: 1
+          w: 6
+          x: 0
+          'y': 0
+        id: title
+        data:
+          id: title
+          type: textcomponent
+          componentInput:
+            type: templatev2
+            connections:
+              - id: summary
+                componentId: ctx
+            eval: '${ctx.summary}'
+            fieldType: template
+          configuration:
+            copyButton:
+              type: static
+              value: false
+            disableNoText:
+              type: static
+              value: true
+              fieldType: boolean
+            style:
+              type: static
+              value: Body
+            tooltip:
+              type: evalv2
+              value: ''
+              connections:
+                - id: author
+                  componentId: ctx
+              expr: '`Author: ${ctx.author}`'
+              fieldType: text
+          customCss:
+            container:
+              class: ''
+              style: ''
+            text:
+              class: text-xl font-semibold whitespace-nowrap truncate
+              style: ''
+          horizontalAlignment: left
+          verticalAlignment: center
+      - '12':
+          fixed: false
+          fullHeight: false
+          h: 1
+          w: 6
+          x: 6
+          'y': 0
+        '3':
+          fixed: false
+          fullHeight: false
+          h: 1
+          w: 3
+          x: 0
+          'y': 1
+        id: recomputeall
+        data:
+          id: recomputeall
+          type: recomputeallcomponent
+          configuration:
+            defaultRefreshInterval:
+              type: static
+              value: '0'
+          customCss:
+            container:
+              class: ''
+              style: ''
+          horizontalAlignment: right
+          menuItems: []
+          verticalAlignment: center
+  theme:
+    type: path
+    path: f/app_themes/theme_0
+  unusedInlineScripts: []
+policy:
+  allowed_s3_keys: []
+  execution_mode: publisher
+  s3_inputs: []
+  triggerables_v2:
+    'bg_0:rawscript/188f83edbb08c7ab4ba5eabbcb18b57cd5df4eec50ce1d4e044b0a6c35692db8':
+      allow_user_resources: []
+      one_of_inputs: {}
+      static_inputs:
+        x: null
+    'bg_1:rawscript/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+      allow_user_resources: []
+      one_of_inputs: {}
+      static_inputs: {}
+    'bg_2:rawscript/e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855':
+      allow_user_resources: []
+      one_of_inputs: {}
+      static_inputs: {}

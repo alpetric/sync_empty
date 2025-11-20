@@ -1,0 +1,15 @@
+summary: Copy of schedule
+description: ''
+lock: '!inline f/schedule/schedule_exceptionnnnnn.script.lock'
+kind: script
+schema:
+  $schema: 'https://json-schema.org/draft/2020-12/schema'
+  type: object
+  properties:
+    scheduled_for:
+      type: string
+      description: ''
+      default: null
+      originalType: string
+  required:
+    - scheduled_for
