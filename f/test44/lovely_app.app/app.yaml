@@ -8,14 +8,14 @@ value:
         h: 2
         w: 12
         x: 0
-        'y': 0
+        y: 0
       '3':
         fixed: true
         fullHeight: false
         h: 2
         w: 6
         x: 0
-        'y': 0
+        y: 0
       id: topbar
       data:
         id: topbar
@@ -38,14 +38,14 @@ value:
           h: 1
           w: 6
           x: 0
-          'y': 0
+          y: 0
         '3':
           fixed: false
           fullHeight: false
           h: 1
           w: 6
           x: 0
-          'y': 0
+          y: 0
         id: title
         data:
           id: title
@@ -55,7 +55,7 @@ value:
             connections:
               - id: summary
                 componentId: ctx
-            eval: '${ctx.summary}'
+            eval: ${ctx.summary}
             fieldType: template
           configuration:
             copyButton:
@@ -91,14 +91,14 @@ value:
           h: 1
           w: 6
           x: 6
-          'y': 0
+          y: 0
         '3':
           fixed: false
           fullHeight: false
           h: 1
           w: 3
           x: 0
-          'y': 1
+          y: 1
         id: recomputeall
         data:
           id: recomputeall
@@ -118,8 +118,3 @@ value:
     type: path
     path: f/app_themes/theme_0
   unusedInlineScripts: []
-policy:
-  allowed_s3_keys: []
-  execution_mode: publisher
-  s3_inputs: []
-  triggerables_v2: {}
